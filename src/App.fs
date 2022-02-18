@@ -149,37 +149,42 @@ let update (msg: Msg) (state: State): State =
                 BeingEdited = []
         }
 
-    | RemoveFilter -> { state with ActiveFilter = None }
+    | RemoveFilter -> 
+        {
+            state with 
+                ActiveFilter = None 
+                BeingEdited = []
+        }
 
 let appTitle = 
     Html.p [
-        prop.className "title"
+        prop.className B.Title
         prop.text "Elmish todo list"
     ]
 
 let inputField (state : State) (dispatch : Msg -> unit) =
     Html.div [
-        prop.classes [ "field"; "has-addons" ]
+        prop.classes [ B.Field; B.HasAddons ]
         prop.children [
             Html.div [
-                prop.classes [ "control"; "is-expanded" ]
+                prop.classes [ B.Control; B.IsExpanded ]
                 prop.children [
                     Html.input [
-                        prop.classes [ "input"; "is-medium" ]
+                        prop.classes [ B.Input; B.IsMedium ]
                         prop.valueOrDefault state.NewTodo
                         prop.onChange (SetNewTodo >> dispatch)
                     ]
                 ]
             ]
             Html.div [
-                prop.className "control"
+                prop.className B.Control
                 prop.children [
                     Html.button [
-                        prop.classes [ "button"; "is-primary"; "is-medium" ]
+                        prop.classes [ B.Button; B.IsPrimary; B.IsMedium ]
                         prop.onClick (fun _ -> dispatch AddNewTodo)
                         prop.children [
                             Html.i [
-                                prop.classes [ "fa"; "fa-plus" ]
+                                prop.classes [ FA.Fa; FA.FaPlus ]
                             ]
                         ]
                     ]
@@ -197,41 +202,41 @@ let div (classes : string list) (children : Fable.React.ReactElement list) =
 let noItems =
     Html.ul [
         Html.div [ 
-            prop.className "box"
+            prop.className B.Box
             prop.text "No items"
         ]
     ]
 
 let renderTodo (todo : Todo) (dispatch : Msg -> unit) =
-    div [ "box" ] [
-        div [ "columns"; "is-mobile"; "is-vcentered" ] [
-            div [ "column" ] [
+    div [ B.Box ] [
+        div [ B.Columns; B.IsMobile; B.IsVcentered ] [
+            div [ B.Column ] [
                 Html.p [
-                    prop.className "subtitle"
+                    prop.className B.Subtitle
                     prop.text todo.Description
                 ]
             ]
-            div [ "column"; "is-narrow" ] [
-                div [ "buttons" ] [
+            div [ B.Column; B.IsNarrow ] [
+                div [ B.Buttons ] [
                     Html.button [
-                        prop.classes [ "button"; if todo.Completed then "is-success" ]
+                        prop.classes [ B.Button; if todo.Completed then B.IsSuccess ]
                         prop.onClick (fun _ -> dispatch (ToggleComplete todo.Id))
                         prop.children [
-                            Html.i [ prop.classes [ "fa"; "fa-check" ] ]
+                            Html.i [ prop.classes [ FA.Fa; FA.FaCheck ] ]
                         ]
                     ]
                     Html.button [
-                        prop.classes [ "button"; "is-primary" ]
+                        prop.classes [ B.Button; B.IsPrimary ]
                         prop.onClick (fun _ -> dispatch (StartEdit todo.Id))
                         prop.children [
-                            Html.i [ prop.classes [ "fa"; "fa-check" ] ]
+                            Html.i [ prop.classes [ FA.Fa; FA.FaCheck ] ]
                         ]
                     ]
                     Html.button [
-                        prop.classes [ "button"; "is-danger" ]
+                        prop.classes [ B.Button; B.IsDanger ]
                         prop.onClick (fun _ -> dispatch (DeleteTodo todo.Id))
                         prop.children [
-                            Html.i [ prop.classes [ "fa"; "fa-check" ] ]
+                            Html.i [ prop.classes [ FA.Fa; FA.FaCheck ] ]
                         ]
                     ]
                 ]
@@ -240,32 +245,32 @@ let renderTodo (todo : Todo) (dispatch : Msg -> unit) =
     ]
 
 let renderEditForm (beingEdited : TodoBeingEdited) (todo : Todo) (dispatch : Msg -> unit) =
-    div [ "box" ] [
-        div [ "field"; "is-grouped" ] [
-            div [ "control"; "is-expanded" ] [
+    div [ B.Box ] [
+        div [ B.Field; B.IsGrouped ] [
+            div [ B.Control; B.IsExpanded ] [
                 Html.input [
-                    prop.classes [ "input"; "is-medium" ]
+                    prop.classes [ B.Input; B.IsMedium ]
                     prop.valueOrDefault beingEdited.NewText
                     prop.onTextChange (fun s -> SetNewEditText (todo.Id, s) |> dispatch)
                 ]
             ]
         ]
-        div [ "control"; "buttons" ] [
+        div [ B.Control; B.Buttons ] [
             Html.button [
                 prop.classes [ 
-                    "button" 
-                    if beingEdited.NewText <> todo.Description then "is-primary" else "is-outlined"
+                    B.Button 
+                    if beingEdited.NewText <> todo.Description then B.IsPrimary else B.IsOutlined
                 ]
                 prop.onClick (fun _ -> ConfirmEdit todo.Id |> dispatch)
                 prop.children [
-                    Html.i [ prop.classes ["fa"; "fa-save" ] ]
+                    Html.i [ prop.classes [ FA.Fa; FA.FaSave ] ]
                 ]
             ]   
             Html.button [
-                prop.classes [ "button"; "is-warning" ]
+                prop.classes [ B.Button; B.IsWarning ]
                 prop.onClick (fun _ -> CancelEdit todo.Id |> dispatch)
                 prop.children [
-                    Html.i [ prop.classes ["fa"; "fa-save" ] ]
+                    Html.i [ prop.classes [FA.Fa; FA.FaSave ] ]
                 ]
             ]
         ]
@@ -293,10 +298,10 @@ let todoList (state : State) (dispatch : Msg -> unit) =
         ]
 
 let renderFilterTabs (state : State) (dispatch : Msg -> unit) =
-    div [ "tabs"; "is-toggle"; "is-fullwidth" ] [
+    div [ B.Tabs; B.IsToggle; B.IsFullwidth ] [
         Html.ul [
             Html.li [
-                prop.classes [ if state.ActiveFilter = None then "is-active" ]
+                prop.classes [ if state.ActiveFilter = None then B.IsActive ]
                 prop.onClick (fun _ -> dispatch RemoveFilter)
                 prop.children [
                     Html.a [
@@ -305,7 +310,7 @@ let renderFilterTabs (state : State) (dispatch : Msg -> unit) =
                 ]
             ]
             Html.li [
-                prop.classes [ if state.ActiveFilter = Some Complete then "is-active" ]
+                prop.classes [ if state.ActiveFilter = Some Complete then B.IsActive ]
                 prop.onClick (fun _ -> dispatch (SetFilter Complete))
                 prop.children [
                     Html.a [
@@ -314,7 +319,7 @@ let renderFilterTabs (state : State) (dispatch : Msg -> unit) =
                 ]
             ]
             Html.li [
-                prop.classes [ if state.ActiveFilter = Some Incomplete then "is-active" ]
+                prop.classes [ if state.ActiveFilter = Some Incomplete then B.IsActive ]
                 prop.onClick (fun _ -> dispatch (SetFilter Incomplete))
                 prop.children [
                     Html.a [
