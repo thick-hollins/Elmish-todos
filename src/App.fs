@@ -24,7 +24,7 @@ type State =
     { 
         Todos: Todo list
         NewTodo: string 
-        BeingEdited: TodoBeingEdited option
+        BeingEdited: TodoBeingEdited list
         ActiveFilter: Filter option
     }
 
@@ -34,9 +34,9 @@ type Msg =
     | ToggleComplete of Guid
     | DeleteTodo of Guid
     | StartEdit of Guid
-    | CancelEdit
-    | ConfirmEdit
-    | SetNewEditText of string
+    | CancelEdit of Guid
+    | ConfirmEdit of Guid
+    | SetNewEditText of Guid * string
     | SetFilter of Filter
     | RemoveFilter
 
@@ -44,7 +44,7 @@ let init() =
     { 
         Todos = [ { Id = Guid.NewGuid(); Description = "Learn F#"; Completed = false } ]
         NewTodo = ""
-        BeingEdited = None
+        BeingEdited = []
         ActiveFilter = None
     }
 
@@ -90,49 +90,63 @@ let update (msg: Msg) (state: State): State =
         }
 
     | StartEdit id ->
+        let newEdit = 
+            state.Todos
+            |> List.tryFind (fun t -> t.Id = id)
+            |> Option.map (fun t -> { Id = id; NewText = t.Description })
         { 
             state with 
-                BeingEdited = 
-                    state.Todos
-                    |> List.tryFind (fun t -> t.Id = id)
-                    |> Option.map (fun t -> { Id = id; NewText = t.Description })
+                BeingEdited =
+                    match newEdit with
+                    | Some edit -> List.append [edit] state.BeingEdited
+                    | None -> state.BeingEdited
         }
 
-    | CancelEdit -> 
+    | CancelEdit id -> 
         { 
             state with
-                BeingEdited = None
+                BeingEdited = 
+                    state.BeingEdited
+                    |> List.filter (fun e -> e.Id <> id)
         }
 
-    | SetNewEditText s ->
+    | SetNewEditText (id, input) ->
         { 
             state with 
                 BeingEdited = 
                     state.BeingEdited
-                    |> Option.map (fun t -> { t with NewText = s })
+                    |> List.map (fun e -> 
+                        if e.Id = id then { e with NewText = input }
+                        else e )
         }
 
-    | ConfirmEdit -> 
-        match state.BeingEdited with
+    | ConfirmEdit id -> 
+        let edit = 
+            state.BeingEdited
+            |> List.tryFind (fun e -> e.Id = id)
+
+        match edit with
         | None -> state
-        | Some beingEdited when beingEdited.NewText = "" -> state
+        | Some beingEdited when beingEdited.NewText = "" -> state 
         | Some beingEdited ->
             {
                 state with
-                    Todos = 
+                    Todos =
                         state.Todos
-                        |> List.map (fun t -> 
-                        if t.Id = beingEdited.Id then 
-                            { t with Description = beingEdited.NewText } 
-                        else t )
-                    BeingEdited = None
+                        |> List.map (fun t ->
+                            if t.Id = beingEdited.Id then
+                                { t with Description = beingEdited.NewText } 
+                            else t )
+                    BeingEdited =
+                        state.BeingEdited
+                        |> List.filter (fun e -> e.Id <> beingEdited.Id)
             }
 
     | SetFilter filter -> 
         { 
             state with 
                 ActiveFilter = Some filter
-                BeingEdited = None
+                BeingEdited = []
         }
 
     | RemoveFilter -> { state with ActiveFilter = None }
@@ -232,7 +246,7 @@ let renderEditForm (beingEdited : TodoBeingEdited) (todo : Todo) (dispatch : Msg
                 Html.input [
                     prop.classes [ "input"; "is-medium" ]
                     prop.valueOrDefault beingEdited.NewText
-                    prop.onTextChange (SetNewEditText >> dispatch)
+                    prop.onTextChange (fun s -> SetNewEditText (todo.Id, s) |> dispatch)
                 ]
             ]
         ]
@@ -242,14 +256,14 @@ let renderEditForm (beingEdited : TodoBeingEdited) (todo : Todo) (dispatch : Msg
                     "button" 
                     if beingEdited.NewText <> todo.Description then "is-primary" else "is-outlined"
                 ]
-                prop.onClick (fun _ -> dispatch ConfirmEdit)
+                prop.onClick (fun _ -> ConfirmEdit todo.Id |> dispatch)
                 prop.children [
                     Html.i [ prop.classes ["fa"; "fa-save" ] ]
                 ]
             ]   
             Html.button [
                 prop.classes [ "button"; "is-warning" ]
-                prop.onClick (fun _ -> dispatch CancelEdit)
+                prop.onClick (fun _ -> CancelEdit todo.Id |> dispatch)
                 prop.children [
                     Html.i [ prop.classes ["fa"; "fa-save" ] ]
                 ]
@@ -269,10 +283,12 @@ let todoList (state : State) (dispatch : Msg -> unit) =
         Html.ul [
             prop.children [
                     for todo in toShow ->
-                        match state.BeingEdited with
-                        | Some beingEdited when beingEdited.Id = todo.Id ->
-                            renderEditForm beingEdited todo dispatch
-                        | _ -> renderTodo todo dispatch
+                        let beingEdited =
+                            state.BeingEdited
+                            |> List.tryFind (fun e -> e.Id = todo.Id)
+                        match beingEdited with
+                        | Some edit -> renderEditForm edit todo dispatch
+                        | None -> renderTodo todo dispatch
             ]
         ]
 
